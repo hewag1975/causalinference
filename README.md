@@ -14,5 +14,5 @@ Sources:
 - Coursera: [A Crash Course in Causality: Inferring Causal Effects from
   Obervational
   Data](https://www.coursera.org/learn/crash-course-in-causality)
-- Facure, M.: \[Causal Inference for the Brave and
-  True\]8https://matheusfacure.github.io/python-causality-handbook/landing-page.html)
+- Facure, M.: [Causal Inference for the Brave and
+  True](https://matheusfacure.github.io/python-causality-handbook/landing-page.html)
