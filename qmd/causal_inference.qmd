@@ -1,0 +1,355 @@
+---
+title: "Notes on causal inference"
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Introduction causal inference
+
+Correlation is not causation. Association is not causation.
+
+ML is very good at making (correlation type) predictions. ML is bad at answering causal relationships.
+
+Spurious correlation exists in many real world examples.
+
+Causal assumptions are required to investigate causal effects.
+
+Below, the following notation is applied:
+
+-   $A_i$: a treatment applied to unit $i$
+-   $Y_i$: an observed outcome for unit $i$
+
+and further:
+
+-   $Y_{0i}$ or $Y_i^0$: the outcome for unit $i$ without treatment
+-   $Y_{1i}$ or $Y_i^1$: the outcome for unit $i$ with treatment
+
+Treatment $A$ has a causal effect on outcome $Y$ if $Y^1$ differs from $Y^0$. To investigate and quantify causal effects, ideally the entire population of interest would be treated and remain untreated.
+
+Fundamental problem of causal inference: One cannot observe the same unit with and without treatment. Therefore, a distinction is made between observed outcome and potential outcome. A potential outcome that happened is called **factual** and a potential outcome that did not happen is called **counterfactual**.
+
+Different treatment effects:
+
+-   individual treatment effect: $Y_{1i}-Y_{0i}$
+-   average treatment effect: $E(Y^1-Y^0)$
+-   causal relative risk: $E(Y^1/Y^0)$
+-   average treatment effect on the treated: $E(Y_1-Y_0|A=1)$
+
+Difference between causation and association:
+
+-   $$E(Y^1-Y^0) \not = E(Y|A=1) - E(Y|A=0)$$
+
+$E(Y|A=1)$ is the mean of $Y$ among units with $A=1$, and likewise $E(Y|A=0)$ is the mean of $Y$ among units with $A=0$. Both cases refer to different parts of the population!
+
+In contrast $E(Y^1)$ is the mean of $Y$ if the entire population was treated with $A$ and likewise $E(Y^0)$ is the mean of $Y$ if the entire population was not treated with $A$.
+
+Obbserved data typically consists of outcome $Y$, treatment $A$, and pre-treatment covariates $X$ (e.g. age, race, ...).
+
+## Hypothetical interventions
+
+Hypothetical (or actual) interventions are required to investigate causal effects and get potential outcomes. Studying causal effects require treatments that can be manipulated.
+
+Causal inference is difficult for immutable variables because even hypothetically these variables cannot be manipulated. A possible solution is to replace the immutable variable with a manipulable variable (e.g. name instead of race, gift instead of socioeconomic status).
+
+Hidden treatment: If variables can be manipulated in very different ways (e.g. BMI), the way of manipulation may effect the outcome.
+
+A theoretical check if a variable can be considered manipulable is whether at least hypothetically one can design a randomized controlled trial (RCT)?
+
+## Causal assumptions
+
+In statistics, parameters are typically estimated from data (statistical identifiability). In causal inference, not all outcomes can be observed. Therefore, some assumptions need to be made:
+
+-   stable unit treatment value assumption (SUTVA)
+    -   no interference between units, i.e. treatment of unit a does not affect unit b (aka spillover, contagion)
+    -   single version of treatment
+-   consistency
+    -   potential outcome $Y^a$ under treatment $A=a$ is equal to the observed outcome for an actual treatment $A=a$.
+-   ignorability
+    -   aka the "no unmeasured confounders assumption"
+    -   given pre-treatment covariables X, treatment assignment is independent from potential outcomes conditional on X, i.e. among people with the same X, treatment is being randomly assigned
+    -   treatment assignment is ignorable if enough / good confounders are included
+-   positivity
+    -   for any set of X, treatment assignment was not deterministic
+    -   every unit within X had a chance of getting the treatment $P(A=a|X=x)>0$ for all $a$ and $x$
+
+These assumptions cause:
+
+$$E(Y|A=a,X=x)=E(Y^a|X=x)$$
+
+## Stratification
+
+If we want a marginal causal effect, we can average over the distribution of X.
+
+Standardization involves stratifying and then averaging.
+
+Example:
+
+-   two oral diabetes treatments (one new)
+-   outcome MACE (major adverse cardiac event)
+
+challenge:
+
+-   patients may have had past use of other oral antidiabetic drug (OAD)
+-   past use of OAD is associated with higher risk of MACE
+
+idea:
+
+-   prior OAD use is the pre-treatment X
+-   compute rate of MACE for both treatments in two subpopulations
+    -   patients with no prior OAD use
+    -   patients with prior OAD use
+-   take weighted average per treatment (weights refer to proportions of the subpopulations)
+-   difference is a causal effect if treatment can be thought of as randomized within X
+
+## Cross-sectional look
+
+Research question: Does yoga affect blood pressure
+
+Issues:
+
+-   history (did practice but stopped)
+-   experience (experienced with beginners)
+-   clean research question: focus on new yoga practitioners only
+
+Incident user design: Compare a group with treatment against everyone else Active comparator design: Have an active comparator.
+
+## Confounders
+
+-   confounders are variables that affect treatment **and** outcome
+-   e.g. a coin flip is not a confounder as it should not affect the outcome
+-   e.g. a family history of cancer may affect the outcome (higher risk of cancer), but if it does not affect treatment, it is not a confounder
+
+Confounder control:
+
+-   identify set of X that will make the ignorability assumption hold
+-   use statistical methods to control for these variables
+
+## Causal graphs
+
+Graphical models are the language of causality. They are a way to represent how causality works with regards to what causes what. Also causal graphs (aka directed acyclic graphs, DAGS) are helpful to identify confounders and encode assumptions on dependencies.
+
+-   Directed graph, shows causality, e.g. $A$ affects $Y$:
+
+```{mermaid}
+flowchart LR
+  A --> Y
+```
+
+-   Undirected graph, shows association, e.g. $A$ is associated with $Y$:
+
+```{mermaid}
+flowchart LR
+  A --- Y
+```
+
+Here, $A$ (variables or group of variables) and $Y$ are *nodes* or *vertices*, the link is an *edge.* Variables connected by a graph are adjacent. A *path* is a way to get from one vertex to another, using the edges.
+
+A directed acyclic graph has only directed paths and no cycles.
+
+*Parents* are nodes affecting another, *childs* are nodes being affected. *Roots* are nodes w/o parents. *Ancestors* and *descendants* are used likewise.
+
+A DAG will tell us:
+
+-   which variables are independent from each other
+-   which variables are conditionally independent from each other
+
+Types of path:
+
+-   fork
+
+```{mermaid}
+flowchart LR
+  E --> D
+  E --> F
+```
+
+-   chain: information flows from D to F through E
+
+```{mermaid}
+flowchart LR
+  D --> E --> F
+```
+
+-   collider: A and B affect G
+
+```{mermaid}
+flowchart LR
+  A --> G
+  B --> G
+```
+
+Remember:
+
+If there is a collider anywhere on the path from A to B, then no association between A and B comes from this path.
+
+## Conditional independence
+
+Blocking: Paths can be blocked by conditioning on nodes in the path. Conditioning on E would remove any association between D and F (example of temperature, iced pavements and falls). Same applies for forks.
+
+```{mermaid}
+flowchart LR
+  D --> E --> F
+```
+
+For colliders the situation is the opposite. Here, A and B are independent from each other by default. Conditioning on G might create an association between A and B (example of two randomly enabled light switches and a light bulb).
+
+```{mermaid}
+flowchart LR
+  A --> G
+  B --> G
+```
+
+Frontdoor path from $A$ to $Y$ begins with an arrow from $A$. These carry the actual effect of treatment $A$ on outcome $Y$. Examples:
+
+```{mermaid}
+flowchart TB
+  X --> A 
+  X --> Y
+```
+
+Below, some effect of treatment $A$ on outcome $Y$ is through $Z$. Still changes in treatment will affect the outcome and controlling for $Z$ would mean controlling for an effect of treatment. This is done through **causal mediation analysis**.
+
+```{mermaid}
+flowchart LR
+  A --> Z -->|frontdoor path| Y
+  X --> A
+  X --> Y
+```
+
+Backdoor path are path from treatment $A$ to outcome $Y$ via confounders $X$ (through arrows that **end** in $A$).
+
+```{mermaid}
+flowchart TB
+  X -->|backdoor path| A
+  X --> Y
+  A --> Y
+```
+
+All backdoor paths must be eliminated by identifying a set of variables $X$ that block these. Then we can state:
+
+$$(Y^0, Y^1) \perp A|X$$
+
+I.e. conditional independence of the outcome $Y$ on a treatment $A$ given $X$.
+
+IOW: If treatment is randomly assigned within X, the treatment becomes conditionally independent of the potential outcomes.
+
+## Selecting confounders
+
+Criteria to define sufficient set of confounders:
+
+-   Backdoor path criterion
+-   Disjunctive cause criterion
+
+### Backdoor path criterion
+
+Set of variables $X$ is sufficient to control for confounding if
+
+-   all backdoor paths from treatment to outcome are blocked
+-   it does not include any descendants of treatment
+
+No one-size-fits all combination of $X$.
+
+Example:
+
+```{mermaid}
+flowchart LR
+  A --> Y
+  V --> A
+  V --> W
+  W --> Y
+```
+
+Sets that are sufficient to control for confounding: {V}, {W}, {V, W}.
+
+```{mermaid}
+flowchart LR
+  A --> Y
+  V --> A
+  V --> M
+  W --> M
+  W --> Y
+```
+
+Backdoor path is blocked by collidier. No confounding in this DAG. If we control for $M$, then a backdoor path is opened. Sets that are sufficient to control for confounding: {}, {V}, {W}, {M, W}, {M, V}, {M, V, W}. Never $M$ alone!
+
+```{mermaid}
+flowchart LR
+  Z --> A --> Y
+  V --> A
+  V --> Y
+  W --> A
+  W --> Z
+```
+
+Backdoor path from $A$ to $Y$:
+
+-   A \<- Z \<- V -\> Y
+-   A \<- W -\> Z \<- V -\> Y
+
+No colliders in the first path, possible sets: {Z}, {V}, {V, Z} Collider at $Z$ in the second path, possible sets: {}, {V}, {W}, {Z, V}, {Z, W}
+
+### Disjunctive cause criterion
+
+Control for all causes of the exposure, the outcome or both.
+
+## Observational studies
+
+Difference between RCT and observational studies: Treatment is not randomized. In observational studies, the distribution of $X$ differs between treated and untreated, in RCT it does not. A solution is matching treated to untreated (as long as distributions overlap).
+
+-   Greedy matching: nearest neighbor
+-   Optimal matching: nearest neighbor while minimizing a global distance measure
+
+Assess balance of $X$ after matching, e.g. by standardized difference (smd):
+
+-   independent of sample size
+-   independent of scale (age in years versus age in days)
+-   rules of thumb:
+    -   smd \< 0.1: adequate balance
+    -   smd 0.1 - 0.2: not too alarming
+    -   smd \> 0.2: (serious) imbalance
+
+Analyzing matched data:
+
+-   randomization tests:
+    -   compute test statistic, e.g. sum of outcome (binary)
+    -   assume null hypothesis is true
+    -   randomly permute treatment assignment within pairs and recompute test statistic
+    -   repeat many times
+
+Sensitivity analysis:
+
+-   RCT would control for any bias (observed and unobserved)
+-   Hidden bias occurs if there are unobserved confounders
+-   Overt bias occurs if there is imbalance in observed covariates (matching did not fully control for these variables)
+
+Treatment effect:
+
+-   paired t-test
+-   McNemar test
+
+R-packages:
+
+-   `rcbalcance`
+-   `tableone`
+
+## Propensity scores
+
+PS is the probability of receiving treatment rather than control given X:
+
+$\pi_i=P(A=1|X_i)$
+
+E.g. a PS of 0.3 means that there is a 30% probability to receive the treatment given that subjects X.
+
+Matching on PS should achieve covariate balance. In RCT, PS is generally known. In observational study, PS is unknown. Estimate from data, e.g. using logistic regression ($P(A=1|X)$), i.e. the outcome here is the treatment.
+
+PS matching:
+
+-   PS is a scalar per subject
+-   matching is reduced to one variable
+
+Assess overlap of PS between control and treated (plot). Overlap should exist throughout the entire value range. Strategies in case of small overlap: Edge trimming
+
+Matching is done by nearest-neighbor or optimal matching. In practice, logit of PS is often used, as it stretches the distribution while preserving ranks.
+
+Calipers are used to not accept a bad match (threshold).

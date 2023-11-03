@@ -1,0 +1,202 @@
+---
+title: "Coursera Project"
+format: 
+  html:
+    code-fold: true
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Instructions
+
+Instructions on this project are given on [Coursera](https://www.coursera.org/learn/crash-course-in-causality/exam/MbcoE/data-analysis-project-analyze-data-in-r-using-propensity-score-matching/attempt).
+
+Objective is to estimate the causal effect of a labor training program on post-intervention income levels.
+
+
+## Project setup
+
+Setup consists of installing the required R-packages `tableone`, `Matching` and 
+`MatchIt` and loading the sample data `lalonde` which is included in the 
+`MatchIt` package. 
+
+```{r}
+#| label: setup
+#| message: false
+pkg = c("tableone", "Matching", "MatchIt")
+pkg = pkg[which(!pkg %in% available.packages()[, 1])]
+
+install.packages(pkg)
+
+library("data.table")
+library("ggplot2")
+library("tableone")
+library("Matching")
+library("MatchIt")
+data(lalonde) 
+
+data = as.data.table(lalonde)
+head(data)
+```
+
+
+## Exercises
+
+### Standardized mean difference
+
+Calculate standardized differences for all confounding variables and obtain 
+selected values.
+
+```{r}
+#| label: smd
+
+smd = CreateTableOne(
+  vars = setdiff(names(data), y = "treat")
+  , strata = "treat"
+  , data = data
+  , test = FALSE
+)
+
+print(smd, smd = TRUE)
+```
+
+**Answers:**
+
+The pre-matching standardized difference for `married` is 
+`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.  
+
+The unadjusted difference in `real earnings in 1978` between treated and 
+untreated is 
+`r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`$.
+
+
+### Propensity score
+
+Estimate the propensity score for each subject using logistic regression and 
+return a summary of the distribution of the propensity scores.
+
+```{r}
+#| label: pscore
+
+pmod = glm(
+  treat ~ .
+  , family = "binomial"
+  , data = data[, .SD, .SDcols = setdiff(names(data), y = "re78")]
+)
+
+pscore = pmod$fitted.values
+summary(pmod)
+```
+
+**Answers:** 
+
+The range of the propensity scores is [`r round(range(pscore), digits = 3L)`].
+
+
+### Propensity score matching
+
+Match treated with control subjects based on the propensity score, match 
+one-by-one, no replacement, no caliper. 
+
+```{r}
+#| label: pscore-matching
+
+set.seed(931139)
+
+pmatch = Match(
+  Tr = data$treat     # treatment variable name
+  , X = pscore        # propensity score
+  , M = 1L            # number of matches
+  , replace = FALSE   # no replacement
+)
+
+summary(pmatch)
+```
+
+Subset to matched data and re-calculate standardized mean differences. 
+
+```{r}
+#| label: smd-match
+
+dmatch = data[c(pmatch$index.treated, pmatch$index.control)]
+
+smd = CreateTableOne(
+  vars = setdiff(names(dmatch), y = "treat")
+  , strata = "treat"
+  , data = dmatch
+  , test = FALSE
+)
+
+print(smd, smd = TRUE)
+```
+
+**Answers:**
+
+The post-matching standardized difference for `married` is 
+`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.  
+
+The largest standardized difference is observed for race `black`.
+
+
+### Propensity score matching with caliper
+
+Match treated with control subjects based on the propensity score, match 
+one-by-one, no replacement, **set caliper to 0.1**. 
+
+```{r}
+#| label: pscore-matching-caliper
+
+set.seed(931139)
+
+pmatch = Match(
+  Tr = data$treat     # treatment variable name
+  , X = pscore        # propensity score
+  , M = 1L            # number of matches
+  , replace = FALSE   # no replacement
+  , caliper = 0.1     # caliper
+)
+
+summary(pmatch)
+```
+
+```{r}
+#| label: smd-match-caliper
+
+dmatch = data[c(pmatch$index.treated, pmatch$index.control)]
+
+smd = CreateTableOne(
+  vars = setdiff(names(dmatch), y = "treat")
+  , strata = "treat"
+  , data = dmatch
+  , test = FALSE
+)
+
+print(smd, smd = TRUE)
+```
+
+**Answers:**
+
+There are `r length(pmatch$index.treated)` matched pairs.
+
+
+### Outcome analysis
+
+```{r}
+#| label: outcome-analysis
+
+diffy = data$re78[pmatch$index.treated] - 
+  data$re78[pmatch$index.control]
+
+test = t.test(diffy)
+test
+```
+
+**Answers:**
+
+The adjusted difference in `real earnings in 1978` between treated and 
+untreated is 
+`r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`$.
+
+The 95% confidence interval of the differences in earnings is 
+[`r round(test$conf.int, digits = 2L)`]$.
