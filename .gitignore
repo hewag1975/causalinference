@@ -1,8 +1,14 @@
 .Rproj.user
 .Rhistory
+.Renviron
 .Rdata
 .httr-oauth
 .DS_Store
 .quarto
+
+.venv
+
+*.csv
+
 *.html
 *_files
