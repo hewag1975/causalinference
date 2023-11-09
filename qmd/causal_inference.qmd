@@ -480,3 +480,7 @@ untreated ($1-A_i$)
 Doubly robust estimator is an estimator that is unbiased if either the PS 
 score model or the outcome regression model are correctly specified. 
 Also known as augmented IPTW (AIPTW) estimators.
+
+
+
+
