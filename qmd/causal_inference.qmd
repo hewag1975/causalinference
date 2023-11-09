@@ -5,50 +5,60 @@ editor_options:
   chunk_output_type: console
 ---
 
+
 ## Introduction causal inference
 
-Correlation is not causation. Association is not causation.
+The difference between machine learning and causal inference: 
 
-ML is very good at making (correlation type) predictions. ML is bad at answering causal relationships.
+* Machine learning is good at making **correlation type** predictions. 
+* Machine learning is bad at answering causal relationships.
 
-Spurious correlation exists in many real world examples.
+Correlation is not causation as **spurious correlation** exists in many real 
+world examples.
 
-Causal assumptions are required to investigate causal effects.
 
-Below, the following notation is applied:
+### Notation and terminology
 
--   $A_i$: a treatment applied to unit $i$
--   $Y_i$: an observed outcome for unit $i$
+* $A_i$: a treatment applied to unit $i$
+* $Y_i$: an observed outcome for unit $i$
+* $Y_{0i}$ or $Y_i^0$: the outcome for unit $i$ without treatment
+* $Y_{1i}$ or $Y_i^1$: the outcome for unit $i$ with treatment
 
-and further:
+Treatment $A$ has a causal effect on outcome $Y$ if $Y^1$ differs from $Y^0$. 
 
--   $Y_{0i}$ or $Y_i^0$: the outcome for unit $i$ without treatment
--   $Y_{1i}$ or $Y_i^1$: the outcome for unit $i$ with treatment
+To investigate and quantify causal effects, ideally the entire population of 
+interest would be treated and remain untreated. This of course is not possible 
+and is depicted the fundamental problem of causal inference: The same unit 
+can not be observed under treatment and without treatment. Therefore, a 
+distinction is made between observed outcome and potential outcome. A potential 
+outcome that happened is called **factual** and a potential outcome that did 
+not happen is called **counterfactual**.
 
-Treatment $A$ has a causal effect on outcome $Y$ if $Y^1$ differs from $Y^0$. To investigate and quantify causal effects, ideally the entire population of interest would be treated and remain untreated.
+Treatment effects:
 
-Fundamental problem of causal inference: One cannot observe the same unit with and without treatment. Therefore, a distinction is made between observed outcome and potential outcome. A potential outcome that happened is called **factual** and a potential outcome that did not happen is called **counterfactual**.
+* individual treatment effect: $Y_{1i}-Y_{0i}$ (unobservable)
+* average treatment effect: $E(Y^1-Y^0)$
+* causal relative risk: $E(Y^1/Y^0)$
+* average treatment effect on the treated: $E(Y_1-Y_0|A=1)$
 
-Different treatment effects:
+Correlation does not equal causation because of 
+$E(Y^1-Y^0) \not = E(Y|A=1) - E(Y|A=0)$, as $E(Y|A=1)$ is the mean of $Y$ 
+among units with $A=1$, and likewise $E(Y|A=0)$ is the mean of $Y$ among units 
+with $A=0$. Both cases refer to different parts of the population. 
 
--   individual treatment effect: $Y_{1i}-Y_{0i}$
--   average treatment effect: $E(Y^1-Y^0)$
--   causal relative risk: $E(Y^1/Y^0)$
--   average treatment effect on the treated: $E(Y_1-Y_0|A=1)$
+In contrast $E(Y^1)$ is the mean of $Y$ if the entire population was treated 
+with $A$ and likewise $E(Y^0)$ is the mean of $Y$ if the entire population was 
+not treated with $A$.
 
-Difference between causation and association:
+Observed data typically consists of outcome $Y$, treatment $A$, and 
+pre-treatment covariates $X$ (e.g. age, race, ...).
 
--   $$E(Y^1-Y^0) \not = E(Y|A=1) - E(Y|A=0)$$
-
-$E(Y|A=1)$ is the mean of $Y$ among units with $A=1$, and likewise $E(Y|A=0)$ is the mean of $Y$ among units with $A=0$. Both cases refer to different parts of the population!
-
-In contrast $E(Y^1)$ is the mean of $Y$ if the entire population was treated with $A$ and likewise $E(Y^0)$ is the mean of $Y$ if the entire population was not treated with $A$.
-
-Obbserved data typically consists of outcome $Y$, treatment $A$, and pre-treatment covariates $X$ (e.g. age, race, ...).
 
 ## Hypothetical interventions
 
-Hypothetical (or actual) interventions are required to investigate causal effects and get potential outcomes. Studying causal effects require treatments that can be manipulated.
+Hypothetical (or actual) interventions are required to investigate causal 
+effects and get potential outcomes. Studying causal effects require treatments 
+that can be manipulated.
 
 Causal inference is difficult for immutable variables because even hypothetically these variables cannot be manipulated. A possible solution is to replace the immutable variable with a manipulable variable (e.g. name instead of race, gift instead of socioeconomic status).
 
@@ -353,3 +363,120 @@ Assess overlap of PS between control and treated (plot). Overlap should exist th
 Matching is done by nearest-neighbor or optimal matching. In practice, logit of PS is often used, as it stretches the distribution while preserving ranks.
 
 Calipers are used to not accept a bad match (threshold).
+
+
+## Inverse probability of treatment weighting
+
+Probabilities of treatment may be different for different X (confounders), i.e. 
+their propensity scores may be very different. Example:
+
+* P(A=1|X=1) = 0.1 and P(A=1|X=0) = 0.8
+* In the subpopulation X=1 there are much more untreated than treated
+* In RCT treatment would be randomly assigned so P would be +/- equal
+* Matching would end up to discard a lot of untreated
+* Idea is to up- and down-weigh treated and control group to account for 
+differences in P 
+* In matching of X=1, an selected untreated subject represents 9 subjects
+
+Weighting is performed by the inverse of P(A=1), i.e.
+
+* for treated subjects, weight is the inverse of P(A=1|X)
+* for untreated subjects, weight is the inverse of P(A=0|X)
+
+This is termed inverse probability of treatment weighting (IPTW). The objective 
+of IPTW is to get balance between treated and control like in RCTs.
+
+Oversampling is common in surveys, estimators need to account for the oversample 
+(example is the Horvitz-Thompson estimator for the mean). IPTW creates a 
+pseudo-population where treatment assignment no longer depends on X.
+
+Pseudo-population: In observational studies, in the original population some 
+subjects are more/less likely to recieve treatment/control based on X. In 
+the pseudo-population (after IPTW), everyone is equally likely to be treated. 
+
+
+## Marginal structural models
+
+MSM is a model for the mean of the potential outcomes. It is marginal because it 
+is not conditional on the confounders. 
+
+Linear MSM: $E(Y^a)=\psi_0+\psi_1*a, a = 0, 1$
+
+* $E(Y^0)=\psi_0$
+* $E(Y^1)=\psi_0+\psi_1$
+* $\psi_1$ is the average causal effect $E(Y^1)-E(Y^0)$
+
+Logistic MSM (binary outcome): $logit{E(Y^a)}=\psi_0+\psi_1*a, a = 0, 1$
+
+* $e^{\psi_1}$ is the causal odds ratio
+* $\frac{P(Y^1=1)}{1-P(Y^1=1)}$ is the odds that $Y^1=1$
+* $\frac{P(Y^0=1)}{1-P(Y^0=1)}$ is the odds that $Y^0=1$
+
+General MSM: $g(E(Y^a))=h(a, V; \psi)$
+
+* $g()$ is a link function
+* $h()$ is a function specifying the parametric form of $a$ and $V$
+
+
+IPTW estimation:
+
+* Difference between linear model and MSM is confounding
+* But pseudo-population through IPTW is free from confounding 
+* MSM parameters can be estimated by using observed data of the pseudo-population
+
+MSM Steps: 
+
+* Estimate propensity scores (PS)
+* create weights: 1/PS for treated subjects, 1/(1-PS) for control
+* specify MSM of interest
+* fit weighted GLM
+* use asymptotic variance estimator (or bootstrapping)
+
+Assessing balance:
+
+* Assess covariate balance on weighted sample using SMD (table 1, SMD plot)
+* Difference to SMD on propensity scores is weighted sample
+
+## Distribution of weight 
+
+* Large weights lead to large SE of estimated effects. Intuition: 
+  * SE can be estimated using bootstrapping (with replacement)
+  * estimate parameter and repeat many times
+  * SD of bootstrap is an estimate of SE
+  * A single person with a large weight can have a large impact on parameter 
+  estimate
+
+* Large weights correspond to a very low probability of treatment
+* This indicates a potential violation of the positivity assumption
+
+* Check distribution, e.g. by density plots or sorted index plots
+
+## Remedies for large weights
+
+* investigate why weights are large, e.g. in logistic regression find out 
+what drives small probabilities, is data reliable and realistic.
+* possible cause can be extreme values in X
+
+Measures:
+
+* trim tails of PS distribution, i.e. remove subjects with extreme values of PS, 
+e.g. quantile trimming (2%, 98%), but this changes the population
+* truncate large weights, i.e. determine maximum acceptable weight (e.g. 
+threshold, quantile)
+* truncation reduces variance, but increases bias
+* no truncation: unbiased, large variance
+
+## Doubly robust estimators
+
+Background: Outcome regression model
+
+* regression based estimation of $E(Y^1)$
+* estimate model $m_1(X)=E(Y|A=1, X)$ among treated subjects
+* average over distribution $\frac{1}{n}\Sigma(A_iY_i+(1-A_i)*m_1*(X_i))$
+* $A_iY_i$ is the observed outcome for treated
+* $(1-A_i)*m_1*(X_i)$ is the modeled outcome for treatment applied on the 
+untreated ($1-A_i$)
+
+Doubly robust estimator is an estimator that is unbiased if either the PS 
+score model or the outcome regression model are correctly specified. 
+Also known as augmented IPTW (AIPTW) estimators.

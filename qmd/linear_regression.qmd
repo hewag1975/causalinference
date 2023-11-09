@@ -1,0 +1,154 @@
+---
+title: "Linear regression in causal inference"
+format: 
+  html:
+    code-fold: true
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+
+## Graphical causal models
+
+Causal graphical models show causalities in terms of what causes what. Also, 
+causal graphs (aka directed acyclic graphs, DAGS) are helpful to identify 
+confounders and encode assumptions on dependencies.
+
+In DAGS, random variables are represented as *nodes* or *vertices*, links 
+between these nodes are *edges*. Variables connected by a graph are adjacent. 
+A *path* is a way to get from one vertex to another, using the edges.
+
+A directed acyclic graph has only directed paths and no cycles.
+
+*Parents* are nodes affecting a node, *childs* are nodes being affected. 
+*Roots* are nodes w/o parents. *Ancestors* and *descendants* are used likewise.
+
+A DAG will tell us:
+
+* which variables are independent from each other
+* which variables are conditionally independent from each other
+
+
+```{python}
+import graphviz as gr
+```
+
+Examples:
+
+* Directed graph: $A$ causes $Y$:
+
+```{python}
+g = gr.Digraph()
+g.edge("A", head_name="Y")
+g
+```
+
+* Chained directed graph: $A$ causes $B$ and $B$ causes $Y$:
+
+```{python}
+g = gr.Digraph()
+g.edge("A", head_name="B")
+g.edge("B", head_name="Y")
+g
+```
+
+* Undirected graph: $A$ is associated with $Y$:
+
+```{python}
+g = gr.Graph()
+g.edge("A", head_name="Y")
+g
+```
+
+* Fork structure: $C$ causes $A$ and $Y$. In this case, a **backdoor path** is 
+opened. 
+
+```{python}
+g = gr.Digraph()
+g.edge("C", head_name="A")
+g.edge("C", head_name="Y")
+g
+```
+
+* Collider: $C$ and $B$ affect $M$. In this case, no association comes from this path.
+
+```{python}
+g = gr.Digraph()
+g.edge("C", head_name="A")
+g.edge("C", head_name="M")
+g.edge("B", head_name="M")
+g.edge("B", head_name="Y")
+g
+```
+
+How to read DAGS:
+
+* Dependence flows in the direction of arrows, but likewise backwards (symmetric).
+* Conditioning on common causes (fork structure) closes backdoor paths.
+* Conditioning on intermediary variables blocks dependencies.
+* Colliders blocks dependencies.
+* Conditioning on a collider potentially opens a dependence path.
+
+Paths in a DAG are blocked if:
+
+* it contains a non collider that has been conditioned on
+* it contains a collider that has not been conditioned on
+
+
+### DAGS in crop steering
+
+In crop steering we want to investigate the effect of different crop steering 
+measures (treatment) on flower yield (outcome) given a set of growing conditions. 
+
+Potential treatments:
+
+* cardinal parameters
+* daylight hours
+* stress
+
+```{python}
+g = gr.Digraph()
+g.edge("assimilation")
+
+g.edge("dryback", head_name="flower")
+# g.edge("LIGHT", head_name="A")
+# g.edge("CO2", head_name="M")
+# g.edge("AIR TEMPERATURE", head_name="M")
+# g.edge("HUMIDITY", head_name="Y")
+# g.edge("WIND", head_name="Y")
+# g.edge("NUTRIENTS", head_name="Y")
+# g.edge("WATER", head_name="Y")
+# g.edge("OXYGEN", head_name="Y")
+# g.edge("ROOT TEMPERATURE", head_name="M")
+
+g
+```
+
+
+
+
+
+## Linear regression 
+
+Estimation of the average treatment effect $ATE=E[Y_1-Y_0]$. 
+$ATE$ can **not** simply be identified by $E[Y|T=1]-E[Y|T=0]$ due to bias which 
+arises if treated and untreated differ for other variables than the treatment. 
+
+Example:
+
+Effect of FTF versus online lessons on exam.
+
+Formula:
+
+$exam_i=\beta_0+\kappa*Online_i+u_i$
+
+```{python}
+import pandas as pd
+
+data = pd.read_csv("../data/online_classroom.csv")
+data = data.query("format_blended==0")
+data.head
+```
+
+

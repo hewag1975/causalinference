@@ -1,31 +1,33 @@
 ---
-title: "Coursera Project"
+title: "Propensity score matching"
 format: 
   html:
     code-fold: true
-editor: visual
+editor: source
 editor_options: 
   chunk_output_type: console
 ---
+
 
 ## Instructions
 
 Instructions on this project are given on [Coursera](https://www.coursera.org/learn/crash-course-in-causality/exam/MbcoE/data-analysis-project-analyze-data-in-r-using-propensity-score-matching/attempt).
 
-Objective is to estimate the causal effect of a labor training program on post-intervention income levels.
+Objective is to estimate the causal effect of a labor training program on 
+post-intervention income levels.
 
 
 ## Project setup
 
-Setup consists of installing the required R-packages `tableone`, `Matching` and 
-`MatchIt` and loading the sample data `lalonde` which is included in the 
-`MatchIt` package. 
+Setup consists of installing the required R-packages `tableone`, `Matching` 
+and `MatchIt` and loading the sample data `lalonde` which is included in the 
+`MatchIt` package.
 
 ```{r}
 #| label: setup
 #| message: false
 pkg = c("tableone", "Matching", "MatchIt")
-pkg = pkg[which(!pkg %in% available.packages()[, 1])]
+pkg = pkg[which(!pkg %in% installed.packages()[, 1])]
 
 install.packages(pkg)
 
@@ -42,6 +44,7 @@ head(data)
 
 
 ## Exercises
+
 
 ### Standardized mean difference
 
@@ -64,11 +67,10 @@ print(smd, smd = TRUE)
 **Answers:**
 
 The pre-matching standardized difference for `married` is 
-`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.  
+`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.
 
 The unadjusted difference in `real earnings in 1978` between treated and 
-untreated is 
-`r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`$.
+untreated is `r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`\$.
 
 
 ### Propensity score
@@ -89,15 +91,15 @@ pscore = pmod$fitted.values
 summary(pmod)
 ```
 
-**Answers:** 
+**Answers:**
 
-The range of the propensity scores is [`r round(range(pscore), digits = 3L)`].
+The range of the propensity scores is \[`r round(range(pscore), digits = 3L)`\].
 
 
 ### Propensity score matching
 
-Match treated with control subjects based on the propensity score, match 
-one-by-one, no replacement, no caliper. 
+Match treated with control subjects based on the propensity score, 
+match one-by-one, no replacement, no caliper.
 
 ```{r}
 #| label: pscore-matching
@@ -114,7 +116,7 @@ pmatch = Match(
 summary(pmatch)
 ```
 
-Subset to matched data and re-calculate standardized mean differences. 
+Subset to matched data and re-calculate standardized mean differences.
 
 ```{r}
 #| label: smd-match
@@ -134,15 +136,15 @@ print(smd, smd = TRUE)
 **Answers:**
 
 The post-matching standardized difference for `married` is 
-`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.  
+`r round(attributes(smd$ContTable)$smd["married",], digits = 2L)`.
 
 The largest standardized difference is observed for race `black`.
 
 
 ### Propensity score matching with caliper
 
-Match treated with control subjects based on the propensity score, match 
-one-by-one, no replacement, **set caliper to 0.1**. 
+Match treated with control subjects based on the propensity score, 
+match one-by-one, no replacement, **set caliper to 0.1**.
 
 ```{r}
 #| label: pscore-matching-caliper
@@ -195,8 +197,7 @@ test
 **Answers:**
 
 The adjusted difference in `real earnings in 1978` between treated and 
-untreated is 
-`r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`$.
+untreated is `r round(smd$ContTable[["1"]]["re78", "mean"] - smd$ContTable[["0"]]["re78", "mean"], digits = 0L)`\$.
 
 The 95% confidence interval of the differences in earnings is 
-[`r round(test$conf.int, digits = 2L)`]$.
+\[`r round(test$conf.int, digits = 2L)`\]\$.
