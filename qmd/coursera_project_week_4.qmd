@@ -1,5 +1,5 @@
 ---
-title: "Propensity score matching"
+title: "Inverse probability of treatment"
 format: 
   html:
     code-fold: true
@@ -10,21 +10,22 @@ editor_options:
 
 ## Instructions
 
-Instructions on this project are given on [Coursera]().
+Instructions on this project are given on [Coursera](https://www.coursera.org/learn/crash-course-in-causality/exam/wEyaG/data-analysis-project-carry-out-an-iptw-causal-analysis/attempt).
 
-Objective is to estimate the causal effect of a labor training program on post-intervention income levels.
+Objective is to estimate the causal effect of a labor training program on 
+post-intervention income levels.
 
 
 ## Project setup
 
-Setup consists of installing the required R-packages `tableone`, `Matching` and 
-`MatchIt` and loading the sample data `lalonde` which is included in the 
-`MatchIt` package. 
+Setup consists of installing the required R-packages `tableone`, `Matching`, 
+`MatchIt`, `ipw`, `survey` and loading the sample data `lalonde` which is 
+included in the `MatchIt` package. 
 
 ```{r}
 #| label: setup
 #| message: false
-pkg = c("tableone", "ipw", "sandwich", "survey")
+pkg = c("tableone", "Matching", "MatchIt", "ipw", "survey")
 pkg = pkg[which(!pkg %in% installed.packages()[, 1])]
 
 install.packages(pkg)
@@ -32,8 +33,10 @@ install.packages(pkg)
 library("data.table")
 library("ggplot2")
 library("tableone")
+library("Matching")
+library("MatchIt")
 library("ipw")
-library("sandwich")
+# library("sandwich")
 library("survey")
 
 data(lalonde) 
@@ -45,166 +48,182 @@ head(data)
 
 ## Exercises
 
-### Ex 1
+### Propensity score and weights
 
-
-**Answers:**
-
-
-
-### Ex 2
-
-
-**Answers:**
-
+Estimate the propensity score for each subject using logistic regression and 
+obtain inverse probability of treatment weights per subject.
 
 ```{r}
-#RHC Example
-expit <- function(x) {1/(1+exp(-x)) }
-logit <- function(p) {log(p)-log(1-p)}
+#| label: iptw
 
-#read in data
-load(url("http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/rhc.sav"))
-#view data
-View(rhc)
+pmod = glm(
+  treat ~ .
+  , family = "binomial"
+  , data = data[, .SD, .SDcols = setdiff(names(data), y = "re78")]
+)
 
-#treatment variables is swang1
-#x variables that we will use
-#cat1: primary disease category
-#age
-#sex
-#meanbp1: mean blood pressure
+pscore = pmod$fitted.values
 
-#create a data set with just these variables, for simplicity
-ARF<-as.numeric(rhc$cat1=='ARF')
-CHF<-as.numeric(rhc$cat1=='CHF')
-Cirr<-as.numeric(rhc$cat1=='Cirrhosis')
-colcan<-as.numeric(rhc$cat1=='Colon Cancer')
-Coma<-as.numeric(rhc$cat1=='Coma')
-COPD<-as.numeric(rhc$cat1=='COPD')
-lungcan<-as.numeric(rhc$cat1=='Lung Cancer')
-MOSF<-as.numeric(rhc$cat1=='MOSF w/Malignancy')
-sepsis<-as.numeric(rhc$cat1=='MOSF w/Sepsis')
-female<-as.numeric(rhc$sex=='Female')
-died<-as.integer(rhc$death=='Yes')
-age<-rhc$age
-treatment<-as.numeric(rhc$swang1=='RHC')
-meanbp1<-rhc$meanbp1
+iptw = ifelse(
+  data$treat == 1
+  , yes = 1 / (pscore)
+  , no = 1 / (1 - pscore)
+)
 
-#new dataset
-mydata<-cbind(ARF,CHF,Cirr,colcan,Coma,lungcan,MOSF,sepsis,
-              age,female,meanbp1,treatment,died)
-mydata<-data.frame(mydata)
+par(mfrow = c(2L, 1L))
 
-#covariates we will use (shorter list than you would use in practice)
-xvars<-c("age","female","meanbp1","ARF","CHF","Cirr","colcan",
-         "Coma","lungcan","MOSF","sepsis")
+hist(
+  pscore
+  , breaks = 25L
+  , main = "Propensity score"
+  , xlab = ""
+)
 
-#look at a table 1
-table1<- CreateTableOne(vars=xvars,strata="treatment", data=mydata, test=FALSE)
-## include standardized mean difference (SMD)
-print(table1,smd=TRUE)
+hist(
+  iptw
+  , breaks = 25L
+  , main = "Inv. probability of treatment weights"
+  , xlab = ""
+)
+```
 
-#propensity score model
-psmodel <- glm(treatment ~ age + female + meanbp1+ARF+CHF+Cirr+colcan+
-         Coma+lungcan+MOSF+sepsis,
-               family  = binomial(link ="logit"))
+**Answers:**
 
-## value of propensity score for each subject
-ps <-predict(psmodel, type = "response")
+The range of the inverse probability of treatment weights is 
+\[`r round(range(iptw), digits = 2L)`\].
 
-#create weights
-weight<-ifelse(treatment==1,1/(ps),1/(1-ps))
+```{r}
+#| label: iptw-alternative
+#| include: false
 
-#apply weights to data
-weighteddata<-svydesign(ids = ~ 1, data =mydata, weights = ~ weight)
+## propensity score model to get weights
+wmod = ipwpoint(
+  treat
+  , family = "binomial"
+  , link = "logit"
+  , denominator = ~age + educ + race + married + nodegree + re74 + re75
+  , data = data
+)
 
-#weighted table 1
-weightedtable <-svyCreateTableOne(vars = xvars, strata = "treatment", 
-                                 data = weighteddata, test = FALSE)
-## Show table with SMD
-print(weightedtable, smd = TRUE)
+ipwplot(
+  wmod$ipw.weights
+  , logscale = FALSE
+  , main = "Inv. probability of treatment weights"
+  , xlim = c(0, 22)
+  , xlab = ""
+)
 
-#to get a weighted mean for a single covariate directly:
-mean(weight[treatment==1]*age[treatment==1])/(mean(weight[treatment==1]))
-
-#get causal risk difference
-glm.obj<-glm(died~treatment,weights=weight,family=quasibinomial(link="identity"))
-#summary(glm.obj)
-betaiptw<-coef(glm.obj)
-SE<-sqrt(diag(vcovHC(glm.obj, type="HC0")))
-
-causalrd<-(betaiptw[2])
-lcl<-(betaiptw[2]-1.96*SE[2])
-ucl<-(betaiptw[2]+1.96*SE[2])
-c(lcl,causalrd,ucl)
-
-#get causal relative risk. Weighted GLM
-glm.obj<-glm(died~treatment,weights=weight,family=quasibinomial(link=log))
-#summary(glm.obj)
-betaiptw<-coef(glm.obj)
-#to properly account for weighting, use asymptotic (sandwich) variance
-SE<-sqrt(diag(vcovHC(glm.obj, type="HC0")))
-
-#get point estimate and CI for relative risk (need to exponentiate)
-causalrr<-exp(betaiptw[2])
-lcl<-exp(betaiptw[2]-1.96*SE[2])
-ucl<-exp(betaiptw[2]+1.96*SE[2])
-c(lcl,causalrr,ucl)
-
-#truncate weights at 10
-
-truncweight<-replace(weight,weight>10,10)
-#get causal risk difference
-glm.obj<-glm(died~treatment,weights=truncweight,family=quasibinomial(link="identity"))
-#summary(glm.obj)
-betaiptw<-coef(glm.obj)
-SE<-sqrt(diag(vcovHC(glm.obj, type="HC0")))
-
-causalrd<-(betaiptw[2])
-lcl<-(betaiptw[2]-1.96*SE[2])
-ucl<-(betaiptw[2]+1.96*SE[2])
-c(lcl,causalrd,ucl)
-
-#############################
-#alternative: use ipw package
-#############################
-
-#first fit propensity score model to get weights
-weightmodel<-ipwpoint(exposure= treatment, family = "binomial", link ="logit",
-          denominator= ~ age + female + meanbp1+ARF+CHF+Cirr+colcan+
-           Coma+lungcan+MOSF+sepsis, data=mydata)
-#numeric summary of weights
-summary(weightmodel$ipw.weights)
-#plot of weights
-ipwplot(weights = weightmodel$ipw.weights, logscale = FALSE,
-         main = "weights", xlim = c(0, 22))
-mydata$wt<-weightmodel$ipw.weights
-
-#fit a marginal structural model (risk difference)
-msm <- (svyglm(died ~ treatment, design = svydesign(~ 1, weights = ~wt,
-                  data =mydata)))
-coef(msm)
-confint(msm)
-
-
-# fit propensity score model to get weights, but truncated
-weightmodel<-ipwpoint(exposure= treatment, family = "binomial", link ="logit",
-                      denominator= ~ age + female + meanbp1+ARF+CHF+Cirr+colcan+
-                        Coma+lungcan+MOSF+sepsis, data=mydata,trunc=.01)
-
-#numeric summary of weights
-summary(weightmodel$weights.trun)
-#plot of weights
-ipwplot(weights = weightmodel$weights.trun, logscale = FALSE,
-        main = "weights", xlim = c(0, 22))
-mydata$wt<-weightmodel$weights.trun
-#fit a marginal structural model (risk difference)
-msm <- (svyglm(died ~ treatment, design = svydesign(~ 1, weights = ~wt,
-                                                    data =mydata)))
-coef(msm)
-confint(msm)
+iptw = wmod$ipw.weights
 ```
 
 
+### Standardized mean difference 
 
+Calculate the standardized mean difference for each confounder in the weighted 
+population. 
+
+```{r}
+#| label: smd
+
+## apply weights to data
+wdata = svydesign(ids = ~ 1, data = data, weights = ~ iptw)
+
+wtable = svyCreateTableOne(
+  vars = setdiff(names(data), y = "treat")
+  , strata = "treat"
+  , data = wdata
+  , test = FALSE
+)
+
+print(wtable, smd = TRUE)
+
+## SMD for nodegree
+idx = which(data$treat == 1L)
+
+nodeg1m = Hmisc::wtd.mean(
+  data$nodegree[idx]
+  , weights = iptw[idx]
+)
+
+nodeg0m = Hmisc::wtd.mean(
+  data$nodegree[-idx]
+  , weights = iptw[-idx]
+)
+
+nodeg1var = Hmisc::wtd.var(
+  data$nodegree[idx]
+  , weights = iptw[idx]
+) 
+
+nodeg0var = Hmisc::wtd.var(
+  data$nodegree[-idx]
+  , weights = iptw[-idx]
+) 
+
+nodegsmd = ((nodeg1m - nodeg0m) / 
+              sqrt(0.5 * (nodeg1var + nodeg0var))) |> 
+  abs() |> 
+  round(digits = 2L)
+```
+
+**Answers:**
+
+The standardized mean difference for nodegree is `r nodegsmd`.
+
+
+### Average causal effect 
+
+Find the 95% confidence interval for the average causal effect using IPTW.
+
+```{r}
+#| label: causal-effect
+
+msm = svyglm(
+  re78 ~ treat
+  , design = svydesign(
+    ids = ~ 1
+    , weights = ~iptw
+    , data = data
+  )
+)
+```
+
+**Answers:**
+
+The estimated causal effect is `r round(coef(msm)[2], digits = 2L)`$ with 
+a 95% confidence interval of \[`r round(confint(msm)[2,], digits = 2L)`\].
+
+
+### Average causal effect with weight truncation
+
+Find the 95% confidence interval for the average causal effect using IPTW 
+**with weight truncation**.
+
+```{r}
+#| label: causal-effect-trunc
+
+wmod = ipwpoint(
+  treat
+  , family = "binomial"
+  , link = "logit"
+  , denominator = ~age + educ + race + married + nodegree + re74 + re75
+  , data = data
+  , trunc = 0.01
+)
+
+iptw = wmod$weights.trunc
+
+msm = svyglm(
+  re78 ~ treat
+  , design = svydesign(
+    ids = ~ 1
+    , weights = ~iptw
+    , data = data
+  )
+)
+```
+
+**Answers:**
+
+The estimated causal effect is `r round(coef(msm)[2], digits = 2L)`$ with 
+a 95% confidence interval of \[`r round(confint(msm)[2,], digits = 2L)`\].
