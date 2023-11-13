@@ -482,5 +482,81 @@ score model or the outcome regression model are correctly specified.
 Also known as augmented IPTW (AIPTW) estimators.
 
 
+## Instrumentl variables
+
+* unmeasured confounding, e.g. $U$
+* violation of ignorability assumption
+* estimates of causal effect are biased
+* IV is an alternative causal inference method which does not rely on 
+ignorability assumption
+* $Z$ is IV which controls treatment $A$, but not directly outcome $Y$
+* example: 
+  * treatment $A$: smoking during pregnancy
+  * outcome $Y$: birth weight
+  * confounding $X$: parity, mother's age, weight, etc.
+  * could be unmeasured confounding
+  * RCT unethical
+  * introduce IV $Z$ to encourage women to stop smoking ($Z=1$) or not ($Z=0$)
+* intention-to-treat analysis would focus on effect of encouragement:
+$E(Y^{Z=1})-E(Y^{Z=0})$
+* IV randomly assigned or assumed to be randomized in nature (quarter of birth, 
+geographic distance to specialty care provide, Mendelian randomization)
+
+
+## RCT with non-compliance
+
+* $Z$, randomization to treatment (1, 0)
+* $A$ treatment received (1, 0)
+* $Y$ outcome
+* non-compliance: subject is randomly assigned to treatment ($Z$) but does not 
+actually take it ($A$)
+* then RCT becomes like observational study
+* assignment affects treatment, but not directly the outcome
+* observed data: $Z$, $A$, $Y$
+* potential values of treatment:
+  * $A^{Z=1}=A^1$, value of treatment if randomized to $Z=1$
+  * $A^{Z=0}=A^0$, value of treatment if randomized to $Z=0$
+* causal effect of treatment assignment on treatment received as $E(A^1-A^0)$
+* equals the proportion treated if everyone had been assigned to receive 
+treatment, minus the proportion treated if no one had been assigned to receive 
+treatment. In case of perfect compliance this is equal to 1. 
+* intention-to-treat effect on outcome $E(Y^{Z=1}-Y^{Z=0})$
+* equals the average outcome if everyone had been assigned to receive 
+treatment, minus the average outcome if no one had been assigned to receive 
+treatment. In case of perfect compliance this is equal to 1. 
+* in case of perfect compliance, this is the causal effect of treatment
+
+
+## Compliance classes
+
+* classification of people based on potential treatment:
+  * never-takers
+  * compliers
+  * defiers (do the opposite of what they are told)
+  * always-takers
+* compliers: treatment is randomized
+* defiers: still randomization, but in the opposite way, usually very small group
+* IV methods do not focus on average causal effect, the focal on 
+**local average treatment effect**.
+* $E(Y^{Z=1}|A^0=0, A^1=1)-E(Y^{Z=0}|A^0=0, A^1=1)=E(Y{Z=1}-Y^{Z=0|}compliers})$
+* $E(>Y{Z=1}-Y^{Z=0}|compliers}=E(Y{a=1}-Y^{a=0}|compliers})$
+* known as CACE: complier average causal effect (local average)
+* no inference about defiers, always-takers, never-takers
+* compliance classes aka principal strata, latent (unobserved)
+
+
+## Assumptions to IV
+
+* $Z$ is associated with treatment
+* $Z$ can only affect $Y$ through $A$ (exclusion restriction)
+* $Z$ must not affect unmeasured confounders $U$
+* if $Z$ is randomly assigned it should affect treatment, but not outcome 
+(random). Exception is if subjects are not blinded (know what they were assigned 
+to). 
+
+* if we have a valid IV, we are interested in using it to estimate the 
+complier average causal effect: $E(Y^{a=1}-Y^{a=0}|compliers)$.
+* identification of compliers difficult, therefore monotinicity assumption 
+is used stating that there are no defiers. 
 
 
