@@ -1,6 +1,6 @@
 ---
 title: "Notes on causal inference"
-editor: visual
+editor: source
 editor_options: 
   chunk_output_type: console
 ---
@@ -482,7 +482,7 @@ score model or the outcome regression model are correctly specified.
 Also known as augmented IPTW (AIPTW) estimators.
 
 
-## Instrumentl variables
+## Instrumentl variables IV
 
 * unmeasured confounding, e.g. $U$
 * violation of ignorability assumption
@@ -538,8 +538,8 @@ treatment. In case of perfect compliance this is equal to 1.
 * defiers: still randomization, but in the opposite way, usually very small group
 * IV methods do not focus on average causal effect, the focal on 
 **local average treatment effect**.
-* $E(Y^{Z=1}|A^0=0, A^1=1)-E(Y^{Z=0}|A^0=0, A^1=1)=E(Y{Z=1}-Y^{Z=0|}compliers})$
-* $E(>Y{Z=1}-Y^{Z=0}|compliers}=E(Y{a=1}-Y^{a=0}|compliers})$
+* $E(Y^{Z=1}|A^0=0, A^1=1)-E(Y^{Z=0}|A^0=0, A^1=1)=E(Y^{Z=1}-Y^{Z=0}|compliers)$
+* $E(Y^{Z=1}-Y^{Z=0}|compliers)=E(Y^{a=1}-Y^{a=0}|compliers)$
 * known as CACE: complier average causal effect (local average)
 * no inference about defiers, always-takers, never-takers
 * compliance classes aka principal strata, latent (unobserved)
@@ -558,5 +558,64 @@ to).
 complier average causal effect: $E(Y^{a=1}-Y^{a=0}|compliers)$.
 * identification of compliers difficult, therefore monotinicity assumption 
 is used stating that there are no defiers. 
+
+
+## Causal effect identification and estimation from IV type analysis
+
+* goal is to estimate $E(Y^{a=1}-Y^{a=0}|compliers)$
+* intention-to-treat effect (ITT): 
+$E(Y^{Z=1})-E(Y^{Z=0})=E(Y|Z=1)-E(Y|Z=0)$
+* as treatment assignment does not affect actual treatment for always takers and 
+never takers, these euqal out in differencing, i.e. 
+$E(Y|Z=1)-E(Y|Z=0)=E(Y|Z=1, compliers)*P(compliers)-E(Y|Z=0, compliers)*P(compliers)$
+* main requirement is to identify compliers
+* CACE (complier average causal effect):
+$CACE=\frac{E(Y|Z=1)-E(Y|Z=0)}{P(compliers)}$
+* $P(compliers)=E(A|Z=1)E(A|Z=0)$
+* if perfect compliance $ITT=CACE$
+* ITT underestimates CACE, because some subjects assigned to treatment did not 
+take it.
+
+
+## IV in observational studies
+
+* IVs are like randomizers in natural experiments
+* affect treatment (can be checked with data), not outcome (cannot be checked 
+with data, requires subject matter expertise)
+* Examples of IV in observational studies: time, distance, Mendelian 
+randomization, provider preference, quarter of birth
+
+
+## Two stage least squares (2SLS)
+
+* OLS: assumption that error term is independent of predictor (here treatment $A$)
+* In case of confounding $A_i$ and $\epsilon_i$ are correlated, i.e. $\beta$ 
+is not representing a causal effect
+* Two stage least squares: Method for estimating causal effect in IV setting
+* Stage 1: 
+  * Regress treatment $A$ on instrumental variable $Z$
+  * $A_i=\alpha_0+Z_i\alpha_1+\epsilon_i$ 
+  * $Z_i$ and $\epsilon_i$ are independent by randomization
+  * Get predicted $\hat{A}$ given $Z$
+* Stage 2: 
+  * Regress outcome on fitted treatment $\hat{A}$
+  * $Y_i=\beta_0+\hat{A}_i\beta_1+\epsilon_i$
+  * By exclusion restriction $Z$ is independent of $Y$ given $A$
+  * Estimate of $\beta_1$ is estimate of causal effect
+* 2SLS estimator is a consistent estimator of complier average causal effect  
+* Sensitivity analysis: 
+  * Exclusion restriction: If Z does directly affect Y by a small amount, would 
+  my conclusions change?
+  * Monotonicity: If the proportion of defiers was $\pi$, would my conclusions 
+  change?
+  
+  
+## Weak instruments
+
+* strong instrument is highly predictive of treatment
+* weak instrument is weakly predictive of treatment
+* estimate proportion of compliers: $E(A|Z=1)-E(A|Z=0)$ (close to 1 for strong IV)
+* if share of compliers is small, the estimate of the causal effect is unstable 
+(large variance)
 
 
