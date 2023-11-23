@@ -20,3 +20,7 @@ Resources:
   modeling](https://www.seascapemodels.org/structural-causal-models-tutorial/scm-tute.html)
 - Neal, B.: [Causal Inference Course
   Lectures](https://www.youtube.com/playlist?list=PLoazKTcS0Rzb6bb9L508cyJ1z-U9iWkA0)
+- Neal, B.: [Introduction to Causal
+  Inference](https://www.bradyneal.com/causal-inference-course)
+- Cunningham, S.: [Causal Inference - The
+  Mixtape](https://mixtape.scunning.com/)
