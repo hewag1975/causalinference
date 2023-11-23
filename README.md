@@ -6,10 +6,14 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
+*Correlation does not mean causality*  
+**AND**  
+*No correlation doesn’t mean no causality*
+
 A loose collection of notes and exercises from my journey on causal
 inference.
 
-Resources:
+# Resources
 
 - Coursera: [A Crash Course in Causality: Inferring Causal Effects from
   Obervational

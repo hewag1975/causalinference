@@ -16,9 +16,14 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
+*Correlation does not mean causality*  
+**AND**  
+*No correlation doesn't mean no causality*  
+
 A loose collection of notes and exercises from my journey on causal inference.
 
-Resources:
+
+# Resources
 
 * Coursera: [A Crash Course in Causality: Inferring Causal Effects from Obervational Data](https://www.coursera.org/learn/crash-course-in-causality)
 * Facure, M.: [Causal Inference for the Brave and True](https://matheusfacure.github.io/python-causality-handbook/landing-page.html)
